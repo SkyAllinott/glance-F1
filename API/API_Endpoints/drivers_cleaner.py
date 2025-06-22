@@ -72,6 +72,7 @@ async def get_drivers_championship():
 
     country_correction_map = {
         "New Zealander": "New Zealand",
+        "Italian": "Italy",
         "Argentine": "Argentina"
     }
     drivers = data.get("drivers_championship", [])
