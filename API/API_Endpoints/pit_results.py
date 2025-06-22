@@ -4,33 +4,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 import json
 
-year = datetime.now().year
-request = requests.get("https://f1api.dev/api/" + str(year))
-
-data = request.json()
-
-races = sorted(data.get("races", []), key=lambda r: r.get("schedule", {}).get("race", {}).get("date", ""))
-
-past_events = []
-now = datetime.utcnow()
-for race in races:
-    race_date_str = race.get("schedule", {}).get("race", {}).get("date")
-    race_time_str = race.get("schedule", {}).get("race", {}).get("time")
-    race_datetime = datetime.strptime(f"{race_date_str}T{race_time_str}", "%Y-%m-%dT%H:%M:%SZ")
-    if not race_date_str or not race_time_str:
-        continue
-    if race_datetime > now:
-        break
-    past_events.append(race.get("circuit"))
-
-country = []
-for event in range(0, len(past_events)):
-    country.append(past_events[event].get('country'))
-
-city = []
-for event in range(0, len(past_events)):
-    city.append(past_events[event].get('city'))
-
 points = {
         1: 25,
         2: 18,
@@ -44,11 +17,10 @@ points = {
         10: 1
     }
 
-race_locations = [{'country': country, 'city': city} for country, city in zip(country, city)]
-race_locations
+year = datetime.now().year
 
 
-session_info_query = 'https://api.openf1.org/v1/sessions?session_type=Race&year=2025&session_name=Race'
+session_info_query = 'https://api.openf1.org/v1/sessions?session_type=Race&session_name=Race&Year=' + str(year)
 session_info = requests.get(session_info_query).json()
 
 session_key = []
@@ -67,6 +39,12 @@ for session in session_key:
 
     pit_stops_df = pd.DataFrame.from_dict(pit_stops)
 
+    
+    pits = pit_stops_df.groupby('lap_number', as_index=False).agg(
+        pitstop_mean = ('pit_duration', 'mean'),
+        pitstop_min = ('pit_duration', 'min'),
+        drivers_in = ('driver_number', 'count')
+    )
 
     average = pit_stops_df.groupby('driver_number', as_index=False).agg(
         pitstop_mean = ('pit_duration', 'mean'), 
