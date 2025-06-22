@@ -60,6 +60,7 @@ session_key
 
 data = []
 for session in session_key:
+    print(session)
     pit_query = 'https://api.openf1.org/v1/pit?session_key=' + str(session)
 
     pit_stops = requests.get(pit_query).json()
@@ -73,7 +74,7 @@ for session in session_key:
     )
 
 
-    race = [x for x in session_info if x["session_key"]== session][0]['circuit_short_name']
+    average['race'] = [x for x in session_info if x["session_key"]== session][0]['circuit_short_name']
 
     cols = ['pitstop_mean', 'pitstop_min']
     average['rank'] = average.sort_values(cols, ascending=True).groupby(cols, sort=False).ngroup() + 1
@@ -88,12 +89,12 @@ for session in session_key:
     average['teamName'] = average['driver_number'].map(drivernumber_team_dict)
 
     average = average.sort_values(by='rank')
+    data.append(average)
 
-    data.append({
-        "year": year,
-        "race": race,
-        "session_key": session,
-        "pit_stops": average.to_dict(orient='records')
-    })
+df = pd.concat(data, ignore_index=True)
 
-data
+team_results = df.groupby('teamName', as_index=False).agg(
+    points = ('points', 'sum')
+)
+
+team_results.sort_values('points', ascending=False)
