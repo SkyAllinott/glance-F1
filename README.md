@@ -69,7 +69,7 @@ services:
     restart: unless-stopped
 ```
 
-To integrate with your glance set up (to install glance, see their documentation), add the [f1_next_race.yml](f1_next_race.yml), [f1_drivers_championship.yml](f1_drivers_championship.yml), and [f1_constructors_championship.yml](f1_constructors_championship.yml) to your glance config, making sure to replace the {LOCAL_IP} with your devices IP, as well as updating the ports if needed. 
+To integrate with your glance set up (to install glance, see their documentation), add the [f1_next_race.yml](./Glance%20Widgets/Next%20Race/f1_next_race.yml), [f1_drivers_championship.yml](./Glance%20Widgets/Drivers%20Championship/f1_drivers_championship.yml), and [f1_constructors_championship.yml](./Glance%20Widgets/Constructors%20Championship/f1_constructors_championship.yml) to your glance config, making sure to replace the {LOCAL_IP} with your devices IP, as well as updating the ports if needed. 
 
 
 # Demo
