@@ -15,15 +15,14 @@
           <span>
             {{ .JSON.String "next_event.session" }}
           </span>
-          {{ $datetime := $session.String "schedule.race.datetime_rfc3339" }}
+          {{ $datetime := .JSON.String "next_event.datetime" }}
           <span
             class="color-highlight"
-            title="{{ $session.String "schedule.race.date" }}"
             {{ parseRelativeTime "rfc3339" $datetime }}
           ></span>
         </p>
         <p class="size-h5">
-          {{ .JSON.String "next_event.date" }} @  {{ .JSON.String "next_event.time" }}MT
+          {{ .JSON.String "next_event.date" }} @  {{ .JSON.String "next_event.time" }}
         </p>
 
         <div style="margin-block: 1rem;">
