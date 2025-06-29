@@ -4,7 +4,7 @@
   
 # The F1 Season... At A Glance
 
-![README](https://img.shields.io/badge/Actively%20Mainted-Yes)
+![README](https://img.shields.io/badge/Actively%20Maintained-Green)
 ![README](https://img.shields.io/github/v/release/skyallinott/glance-f1)
 ![README](https://img.shields.io/docker/pulls/skyallinott/f1_api)
 ![README](https://img.shields.io/github/issues/skyallinott/glance-f1)
@@ -51,6 +51,8 @@ The 4 end points are:
 ## Widgets
 I really enjoyed the theme and style of the community widgets by @abaza738, so I largely use their theming and design, I just change the underlying API to achieve more custom results.
 
+See the `/Glance Widgets/` folder for a list of Glance widgets you can integrate into your Glance set up. For more info on how to add these, so [Glance documentation](https://github.com/glanceapp/glance/blob/main/docs/configuration.md#including-other-config-files)
+
 # Installation
 This repo uses docker compose to install. Verify that you are up to date. Below is an example compose file.
 ```yaml
@@ -69,7 +71,7 @@ services:
     restart: unless-stopped
 ```
 
-To integrate with your glance set up (to install glance, see their documentation), add the [f1_next_race.yml](f1_next_race.yml), [f1_drivers_championship.yml](f1_drivers_championship.yml), and [f1_constructors_championship.yml](f1_constructors_championship.yml) to your glance config, making sure to replace the {LOCAL_IP} with your devices IP, as well as updating the ports if needed. 
+To integrate with your glance set up (to install glance, see their documentation), add the [f1_next_race.yml](./Glance%20Widgets/Next%20Race/f1_next_race.yml), [f1_drivers_championship.yml](./Glance%20Widgets/Drivers%20Championship/f1_drivers_championship.yml), and [f1_constructors_championship.yml](./Glance%20Widgets/Constructors%20Championship/f1_constructors_championship.yml) to your glance config, making sure to replace the {LOCAL_IP} with your devices IP, as well as updating the ports if needed. 
 
 
 # Demo
@@ -81,3 +83,21 @@ The largest difference is localized time zones, track map, added track details, 
   <img src="./Demo Images/glance-f1.png" width="225px" height = "600px" hspace="20px" />
   <img src="./Demo Images/community-f1.png" width="225px" height = "600px" hspace="20px" />
 </div>
+
+# Project Structure
+```
+glance-F1/
+├── API/
+│   ├── main.py                    # FastAPI application entry point
+│   ├── requirements.txt           # Python dependencies
+│   ├── Dockerfile                 # Container build instructions
+│   └── API_Endpoints/
+│       ├── constructors_cleaner.py
+│       ├── current_race_cleaner.py
+│       ├── drivers_cleaner.py
+│       └── map/
+│           ├── map_generator.py   # Track SVG generation
+│           └── router.py          # Map endpoint logic
+├── Glance Widgets/               # YAML files for Glance integration
+└── docker-compose.yaml          # Local development compose file
+```
