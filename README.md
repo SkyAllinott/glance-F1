@@ -85,6 +85,7 @@ The largest difference is localized time zones, track map, added track details, 
 </div>
 
 # Project Structure
+```
 glance-F1/
 ├── API/
 │   ├── main.py                    # FastAPI application entry point
@@ -99,3 +100,4 @@ glance-F1/
 │           └── router.py          # Map endpoint logic
 ├── Glance Widgets/               # YAML files for Glance integration
 └── docker-compose.yaml          # Local development compose file
+```
