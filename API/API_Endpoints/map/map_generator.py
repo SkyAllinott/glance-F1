@@ -22,6 +22,10 @@ def generate_track_map_svg(year: int, gp: str, track: str, session_type: str = "
     # Load data from f1 API
     session = fastf1.get_session(year, gp, session_type)
 
+    # FastF1 and F1API.dev have different country names for UK.
+    if (gp == "Silverstone Great Britain"):
+        gp = "Silverstone United Kingdom"
+
     if gp != remove_accents(session.event.Location) + " " + remove_accents(session.event.Country):
         raise ValueError("Map not matching correctly")
 
@@ -39,7 +43,8 @@ def generate_track_map_svg(year: int, gp: str, track: str, session_type: str = "
     rotated = np.dot(telemetry[['X', 'Y']], rot_mat)
 
     x = rotated[:, 0]
-    y = rotated[:, 1]
+    # Apply a vertical flip since it seems the angle is usually a vertical flip off.
+    y = -rotated[:, 1]
 
     # Calculate bounding box
     min_x, max_x = np.min(x), np.max(x)
