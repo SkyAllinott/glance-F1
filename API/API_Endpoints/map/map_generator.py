@@ -11,7 +11,7 @@ def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
 
-def generate_track_map_svg(year: int, gp: str, track: str, session_type: str = "Q") -> str:
+def generate_track_map_svg(year: int, city: str, country: str, track: str, session_type: str = "Q") -> str:
     track_color = os.environ['TRACK_COLOUR'].strip()
 
     match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', track_color)
@@ -20,16 +20,14 @@ def generate_track_map_svg(year: int, gp: str, track: str, session_type: str = "
         raise ValueError("Not a valid hex string")
 
     # Load data from f1 API
+    gp = city + " " + country
     session = fastf1.get_session(year, gp, session_type)
 
     # FastF1 and F1API.dev have different country names for UK.
-    if (gp == "Silverstone Great Britain"):
-        gp = "Silverstone United Kingdom"
+    #if (gp == "Silverstone Great Britain"):
+    #    gp = "Silverstone United Kingdom"
 
-    if (gp == "Stavelot Belgium"):
-        gp = "Spa-Francorchamps Belgium"
-
-    if gp != remove_accents(session.event.Location) + " " + remove_accents(session.event.Country):
+    if (city != remove_accents(session.event.Location)) and (country != remove_accents(session.event.Country)):
         raise ValueError("Map not matching correctly")
 
     # I hate this API, please let me load just one drivers telemetry not everything...

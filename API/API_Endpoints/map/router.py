@@ -92,7 +92,7 @@ async def get_dynamic_track_map():
 
         print("Cache expired: Fetching track map for " + str(gp) + " " + str(year))
         try:
-            svg_content = generate_track_map_svg(year, gp, circuit.get("circuitName"), "Q")
+            svg_content = generate_track_map_svg(year, city, country, circuit.get("circuitName"), "Q")
         except Exception as e:
             raise ValueError("Could not print map. Likely catching FastF1 pulling wrong track.")
         svg_bytes = svg_content.encode("utf-8")
