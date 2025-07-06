@@ -26,6 +26,9 @@ def generate_track_map_svg(year: int, gp: str, track: str, session_type: str = "
     if (gp == "Silverstone Great Britain"):
         gp = "Silverstone United Kingdom"
 
+    if (gp == "Stavelot Belgium"):
+        gp = "Spa-Francorchamps Belgium"
+
     if gp != remove_accents(session.event.Location) + " " + remove_accents(session.event.Country):
         raise ValueError("Map not matching correctly")
 
