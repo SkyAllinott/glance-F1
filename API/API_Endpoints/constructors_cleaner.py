@@ -90,7 +90,7 @@ async def get_constructors_championship():
     # Cache until event ends or 1 hour (in case f1/last is down or something
     event_end = await get_next_race_end()
     if event_end:
-        expire = int((event_end - datetime.now(MT)).total_seconds()) 
+        expire = int(((event_end + timedelta(hours = 4)) - datetime.now(MT)).total_seconds()) 
         expiry_dt = event_end + timedelta(hours=4)
     else: 
         expire = 3600
