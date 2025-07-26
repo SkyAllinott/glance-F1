@@ -71,7 +71,7 @@ async def get_next_race():
         if val["date"] and val["time"]:
             dt_mt = convert_to_mt(val["date"], val["time"])
             val["date"] = dt_mt.strftime("%Y-%m-%d")
-            val["time"] = dt_mt.strftime("%I%p").replace('0', '')
+            val["time"] = dt_mt.strftime("%-I:%M%p")
             val["datetime_rfc3339"] = dt_mt.isoformat()
 
     # Clean up race name
