@@ -174,8 +174,8 @@ async def get_next_race():
         race_dt_str = next_event.get("datetime")
         if race_dt_str:
             race_dt = datetime.fromisoformat(race_dt_str).astimezone(MT)
-            expiry_dt = race_dt + timedelta(hours=4)
-            expire = int((race_dt + timedelta(hours=4) - datetime.now(MT)).total_seconds())
+            expiry_dt = race_dt + timedelta(hours=4.25)
+            expire = int((race_dt + timedelta(hours=4.25) - datetime.now(MT)).total_seconds())
         else:
             expiry_dt = datetime.now(MT) + timedelta(hours=1)
             expire = 3600  # fallback
