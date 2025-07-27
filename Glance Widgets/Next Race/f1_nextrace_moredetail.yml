@@ -185,7 +185,7 @@
 
         <div style="margin-block: 1rem;">
           <img
-            src="http://192.168.50.5:4463/f1/next_map/"
+            src="http://{LOCAL_IP}:4463/f1/next_map/"
             onerror="this.style.display='none'"
             style="max-width: 100%; height: auto; border-radius: 8px;"
           />
