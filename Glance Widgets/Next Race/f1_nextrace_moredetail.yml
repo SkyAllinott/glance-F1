@@ -1,7 +1,7 @@
 - type: custom-api
   title: Next Race
   cache: 1h
-  url: http://192.168.50.5:4463/f1/next_race/
+  url: http://{LOCAL_IP}:4463/f1/next_race/
   template: |
     <div class="flex flex-column gap-10">
       {{ $session := index (.JSON.Array "race") 0 }}
