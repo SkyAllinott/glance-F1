@@ -1,6 +1,6 @@
 The yml file in this directory creates the following Glance widget.
 
-Please make sure to update the .yml with your local IP. There are two references to {LOCAL_IP} which you must change and add the IP of your API. If glance and your glance-f1 are on the same PC, then you can replace with localhost, otherwise you should specify the local IP. 
+Please make sure to add an environment variable called "F1_API_URL" that would contain your local IP. If Glance and glance-F1 are on the same computer, then you can specify local host, otherwise the local IP. If you prefer not to use environment variables, you need to edit each of the widget yamls and remove ${F1_API_URL} with your IP.
 
 If you're not a fan of the flag aesthetic, you can delete the img tag in the yml that calls to flagcdn.com. 
 

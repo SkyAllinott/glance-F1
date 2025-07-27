@@ -1,7 +1,7 @@
 - type: custom-api
   title: Constructors Standings
   cache: 5m
-  url: http://{LOCAL_IP}:4463/f1/constructors_standings/
+  url: http://${F1_API_URL}:4463/f1/constructors_standings/
   template: |
     <ul class="list collapsible-container" data-collapse-after="5">
       {{ range $i, $v := .JSON.Array "constructors" }}
