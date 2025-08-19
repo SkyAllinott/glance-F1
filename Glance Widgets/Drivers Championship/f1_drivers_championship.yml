@@ -1,7 +1,7 @@
 - type: custom-api
   title: Drivers Standings
   cache: 5m
-  url: http://${F1_API_URL}/f1/drivers_standings/
+  url: http://${F1_API_URL}:4463/f1/drivers_standings/
   template: |
     <ul class="list collapsible-container" data-collapse-after="3">
       {{ range $i, $v := .JSON.Array "drivers" }}
