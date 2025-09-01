@@ -70,6 +70,7 @@ async def get_dynamic_track_map():
         country = circuit.get("country")
         city = circuit.get("city")
         gp = city + " " + country
+        race_name = race.get("raceName")
         race_dt_str = race.get("schedule", {}).get("race", {}).get("datetime_rfc3339")
 
         if not gp or not race_dt_str:
@@ -94,7 +95,10 @@ async def get_dynamic_track_map():
         try:
             svg_content = generate_track_map_svg(year, city, country, circuit.get("circuitName"), "Q")
         except Exception as e:
-            raise ValueError("Could not print map. Likely catching FastF1 pulling wrong track.")
+            try:
+                svg_content = generate_track_map_svg(year = year, race_name = race_name, track = circuit.get("circuitName"), session_type = "Q")
+            except:
+                raise ValueError("Could not print map. Likely catching FastF1 pulling wrong track.")
         svg_bytes = svg_content.encode("utf-8")
         await cache.set(cache_key, svg_content, expire=expire)
 
