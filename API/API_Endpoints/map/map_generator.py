@@ -34,7 +34,7 @@ def generate_track_map_svg(year: int, city: str = None, country: str = None, tra
     #    gp = "Silverstone United Kingdom"
 
     if not race_name: 
-        if (city != remove_accents(session.event.Location)) and (country != remove_accents(session.event.Country)):
+        if (city != remove_accents(session.event.Location)) or (country != remove_accents(session.event.Country)):
             raise ValueError("Map not matching correctly")
 
     # I hate this API, please let me load just one drivers telemetry not everything...
