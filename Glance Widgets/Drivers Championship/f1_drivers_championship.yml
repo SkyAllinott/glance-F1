@@ -23,6 +23,8 @@
               {{- else if eq $id "haas" -}}Haas
               {{- else if eq $id "rb" -}}RB
               {{- else if eq $id "sauber" -}}Sauber
+              {{- else if eq $id "audi" -}}Audi
+              {{- else if eq $id "cadillac" -}}Cadillac
               {{- else -}}{{ $id }}{{- end -}})
             </span>
         </div>
