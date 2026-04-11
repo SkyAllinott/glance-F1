@@ -138,7 +138,7 @@ async def get_constructors_championship():
     response_data = {
         "season": data.get("season"), 
         "cache_expires": expiry_dt.isoformat(),
-        "drivers": results,
+        "constructors": results,
         "result_signature": new_signature}
 
     await cache.set(cache_key, response_data, expire=expire)
