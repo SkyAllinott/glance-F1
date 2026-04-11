@@ -84,8 +84,8 @@ async def get_next_race():
     for session, val in schedule.items():
         if val["date"] and val["time"]:
             dt_mt = convert_to_mt(val["date"], val["time"])
-            val["date_local"] = dt_mt.strftime("%Y-%m-%d")
-            val["time_local"] = dt_mt.strftime("%-I:%M%p")
+            val["date"] = dt_mt.strftime("%Y-%m-%d")
+            val["time"] = dt_mt.strftime("%-I:%M%p")
             val["datetime_rfc3339"] = dt_mt.isoformat()
 
     # Clean up race name
