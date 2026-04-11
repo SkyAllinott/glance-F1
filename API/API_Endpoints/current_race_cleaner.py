@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import pytz
 import os
 import fastf1
+import hashlib 
+import json
 
 router = APIRouter()
 
@@ -28,12 +30,20 @@ def convert_to_mt(date_str, time_str):
     dt_utc = UTC.localize(dt_utc)
     return dt_utc.astimezone(MT)
 
+def make_signature(race):
+    relevant = {
+        "winner": race.get("winner")
+    }
+    return hashlib.md5(json.dumps(relevant, sort_keys=True).encode()).hexdigest()
+
 @router.get("/", summary="Fetch next race")
 async def get_next_race():
     cache = FastAPICache.get_backend()
     cache_key = "f1:next_race"
 
     cached = await cache.get(cache_key)
+    old_signature = None
+
     if cached:
         return cached
 
@@ -51,14 +61,18 @@ async def get_next_race():
 
     # Loop through list in order until find first race with date past today. 
     next_race = None
-    now = datetime.utcnow()
+    now = datetime.now(MT)
     for race in races:
         race_date_str = race.get("schedule", {}).get("race", {}).get("date")
         race_time_str = race.get("schedule", {}).get("race", {}).get("time")
         if not race_date_str or not race_time_str:
             continue
-        race_datetime = datetime.strptime(f"{race_date_str}T{race_time_str}", "%Y-%m-%dT%H:%M:%SZ")
-        if race_datetime >= now:
+        
+        race_datetime_utc = datetime.strptime(f"{race_date_str}T{race_time_str}", "%Y-%m-%dT%H:%M:%SZ")
+        race_datetime_utc = UTC.localize(race_datetime_utc)
+
+        race_datetime_local = race_datetime_utc.astimezone(MT)
+        if race_datetime_local >= now:
             next_race = race
             break
 
@@ -108,6 +122,7 @@ async def get_next_race():
     else:
         next_race["totalDistanceKm"] = None
 
+    new_signature = make_signature(next_race)
 
     # Select next event
     def get_datetime(item):
@@ -170,19 +185,56 @@ async def get_next_race():
 
 
     # Cache expiry logic based on race time
-    try:
-        race_dt_str = next_event.get("datetime")
-        if race_dt_str:
-            race_dt = datetime.fromisoformat(race_dt_str).astimezone(MT)
-            expiry_dt = race_dt + timedelta(hours=4.25)
-            expire = int((race_dt + timedelta(hours=4.25) - datetime.now(MT)).total_seconds())
+    now = datetime.now(MT)
+    race_session = next_race.get("schedule", {}).get("race")
+
+    if race_session:
+        race_dt = datetime.fromisoformat(race_session["datetime_rfc3339"])
+
+        if race_dt > now:
+            # Before race, cache until race starts
+            expire = int((race_dt - now).total_seconds())
+            expiry_dt = race_dt
+        elif now < race_dt + timedelta(hours=1):
+            # Race just ended, wait minimum of 1 hour
+            expiry_dt = race_dt + timedelta(hours=1)
+            expire = int((expiry_dt - now).total_seconds())
         else:
-            expiry_dt = datetime.now(MT) + timedelta(hours=1)
-            expire = 3600  # fallback
-    except Exception as e:
-        print("Cache expiry fallback due to error:", e)
-        expiry_dt = datetime.now(MT) + timedelta(hours=1)
-        expire = 3600
+            # 1 hour after race, poll every hour
+            expire = 3600
+            expiry_dt = now + timedelta(seconds=expire)
+
+            if old_signature and old_signature != new_signature:
+                print("Results updated, polling stopped")
+                try:
+                    next_race_dt = None 
+
+                    for race in races:
+                        r_date = race.get("schedule", {}).get("race", {}).get("date")
+                        r_time = race.get("schedule", {}).get("race", {}).get("time")
+
+                        if not r_date or not r_time:
+                            continue
+
+                        dt_utc = datetime.strptime(f"{r_date}T{r_time}", "%Y-%m-%dT%H:%M:%SZ")
+                        dt_utc = UTC.localize(dt_utc)
+                        dt_local = dt_utc.astimezone(MT)
+
+                        if dt_local > race_dt:
+                            next_race_dt = dt_local
+                            break
+
+                    if next_race_dt:
+                        expire = int((next_race_dt - now).total_seconds())
+                        expiry_dt = next_race_dt
+                    else:
+                        expire = 86400
+                        expiry_dt = now + timedelta(seconds = expire)
+                except Exception as e:
+                    print("Next race cache fallback:", e)
+                    expire = 86400
+                    expiry_dt = now + timedelta(seconds=expire)
+
 
     # Output data
     response_data = {
