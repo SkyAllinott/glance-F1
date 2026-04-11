@@ -45,7 +45,7 @@ async def get_next_race():
     old_signature = None
 
     if cached:
-        old_signature = cached.get("result_signature")
+        return cached
 
     async with httpx.AsyncClient() as client:
         try:

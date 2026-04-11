@@ -6,6 +6,8 @@ import httpx
 from datetime import datetime, timedelta
 import pytz
 import os
+import hashlib
+import json
 
 router = APIRouter()
 
@@ -15,6 +17,7 @@ TZ = os.environ.get("TIMEZONE").strip()
 if TZ not in pytz.all_timezones:
     raise ValueError('Invalid time zone selection')
 MT = pytz.timezone(TZ)
+UTC = pytz.utc
 
 # Initialize caching
 @router.on_event("startup")
@@ -32,6 +35,10 @@ def country_to_code(country_name: str) -> str:
         return pycountry.countries.lookup(country_name).alpha_2.lower()
     except Exception:
         return ""
+    
+def make_signature(results):
+    return hashlib.md5(json.dumps(results, 
+        sort_keys=True).encode()).hexdigest()
 
 async def get_next_race_end():
     async with httpx.AsyncClient() as client:
@@ -42,10 +49,16 @@ async def get_next_race_end():
             next_event = data.get("next_event", {})
             race_dt_str = next_event.get("datetime")
 
-            if race_dt_str:
-                race_dt = datetime.fromisoformat(race_dt_str)
-                race_dt = race_dt.astimezone(MT)
-            return race_dt
+            if not race_dt_str:
+                return None
+            
+            race_dt = datetime.fromisoformat(race_dt_str)
+
+            if race_dt.tzinfo is None:
+                race_dt = UTC.localize(race_dt)
+
+            return race_dt.astimezone(MT)
+        
         except Exception as e:
             print("Error fetching race time:", e)
             print("Used URL:", LAST_RACE_API_URL)
@@ -88,18 +101,45 @@ async def get_constructors_championship():
         })
 
     # Cache until event ends or 1 hour (in case f1/last is down or something
-    event_end = await get_next_race_end()
-    if event_end:
-        expire = int(((event_end + timedelta(hours = 4)) - datetime.now(MT)).total_seconds()) 
-        expiry_dt = event_end + timedelta(hours=4)
-    else: 
-        expire = 3600
-        expiry_dt = datetime.now(MT) + timedelta(hours=1)
+    now = datetime.now(MT)
+    race_dt = await get_next_race_end()
+
+    cached = await cache.get(cache_key)
+    old_signature = cached.get("result_signature") if cached else None
+    new_signature = make_signature(results)
+    if race_dt:
+        if race_dt > now:
+            expire = int((race_dt - now).total_seconds())
+            expiry_dt = race_dt
+        elif now < race_dt + timedelta(hours = 1):
+            expiry_dt = race_dt + timedelta(hours=1)
+            expire = int((expiry_dt - now).total_seconds())
+        else:
+            expire = 3600
+            expiry_dt = now + timedelta(seconds=3600)
+
+            if old_signature and old_signature != new_signature:
+                async with httpx.AsyncClient() as client:
+                    r = await client.get(LAST_RACE_API_URL)
+                    data = r.json()
+
+                    next_dt = data.get("next_event", {}).get("datetime")
+
+                    if next_dt:
+                        next_race_dt = datetime.fromisoformat(next_dt)
+
+                        if next_race_dt.tzinfo is None:
+                            next_race_dt = UTC.localize(next_race_dt)
+                        next_race_dt = next_race_dt.astimezone(MT)
+
+                        expire = int((next_race_dt - now).total_seconds())
+                        expiry_dt = next_race_dt
 
     response_data = {
         "season": data.get("season"), 
         "cache_expires": expiry_dt.isoformat(),
-        "constructors": results}
+        "drivers": results,
+        "result_signature": new_signature}
 
     await cache.set(cache_key, response_data, expire=expire)
     return response_data
