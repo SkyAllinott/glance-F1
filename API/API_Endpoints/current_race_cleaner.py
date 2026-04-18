@@ -62,7 +62,9 @@ async def get_next_race():
     # Loop through list in order until find first race with date past today. 
     next_race = None
     now = datetime.now(MT)
-    for race in races:
+    for i, race in enumerate(races, start = 1):
+        if datetime.now().year == 2026 and i in (4, 5):
+            continue
         race_date_str = race.get("schedule", {}).get("race", {}).get("date")
         race_time_str = race.get("schedule", {}).get("race", {}).get("time")
         if not race_date_str or not race_time_str:
@@ -91,6 +93,9 @@ async def get_next_race():
     # Clean up race name
     year = calendar_data.get("season")
     calendar_round = next_race.get("round")
+
+    if year == 2026 and calendar_round >= 6:
+        calendar_round = calendar_round - 2
 
     event_details = fastf1.get_event(year = year, gp = calendar_round)
     next_race["raceName"] = event_details.EventName
