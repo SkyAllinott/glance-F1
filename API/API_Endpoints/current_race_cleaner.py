@@ -62,7 +62,9 @@ async def get_next_race():
     # Loop through list in order until find first race with date past today. 
     next_race = None
     now = datetime.now(MT)
-    for race in races:
+    for i, race in enumerate(races, start = 1):
+        if datetime.now().year == 2026 and i in (4, 5):
+            continue
         race_date_str = race.get("schedule", {}).get("race", {}).get("date")
         race_time_str = race.get("schedule", {}).get("race", {}).get("time")
         if not race_date_str or not race_time_str:
@@ -91,6 +93,9 @@ async def get_next_race():
     # Clean up race name
     year = calendar_data.get("season")
     calendar_round = next_race.get("round")
+
+    if year == 2026 and calendar_round >= 6:
+        calendar_round = calendar_round - 2
 
     event_details = fastf1.get_event(year = year, gp = calendar_round)
     next_race["raceName"] = event_details.EventName
@@ -186,16 +191,29 @@ async def get_next_race():
 
     # Cache expiry logic based on race time
     now = datetime.now(MT)
-    race_session = next_race.get("schedule", {}).get("race")
 
-    if race_session:
+    # Race time for post race caching logic
+    race_session = next_race.get("schedule", {}).get("race")
+    race_dt = None
+    if race_session and race_session.get("datetime_rfc3339"):
         race_dt = datetime.fromisoformat(race_session["datetime_rfc3339"])
 
-        if race_dt > now:
-            # Before race, cache until race starts
-            expire = int((race_dt - now).total_seconds())
-            expiry_dt = race_dt
-        elif now < race_dt + timedelta(hours=1):
+    if next_event and next_event.get("datetime"):
+        try:
+            next_event_dt = datetime.fromisoformat(next_event["datetime"])
+            if next_event_dt > now:
+                # Cache until next session starts
+                expire = max(1, int((next_event_dt - now).total_seconds()))
+                expiry_dt = next_event_dt
+            else:
+                expire = 3600
+                expiry_dt = now + timedelta(seconds=expire)
+        except Exception:
+            expire = 3600
+            expiry_dt = now + timedelta(seconds=expire)
+
+    elif race_dt:
+        if now < race_dt + timedelta(hours=1):
             # Race just ended, wait minimum of 1 hour
             expiry_dt = race_dt + timedelta(hours=1)
             expire = int((expiry_dt - now).total_seconds())
@@ -234,12 +252,15 @@ async def get_next_race():
                     print("Next race cache fallback:", e)
                     expire = 86400
                     expiry_dt = now + timedelta(seconds=expire)
+    else:
+        expire = 3600
+        expiry_dt = now + timedelta(seconds=expire)
 
 
     # Output data
     response_data = {
         "season": calendar_data.get("season"),
-        "round": next_race.get("round"),
+        "round": calendar_round,
         "timezone": TZ,
         "next_event": next_event,
         "cache_expires": expiry_dt.isoformat(),
