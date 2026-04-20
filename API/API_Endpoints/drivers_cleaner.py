@@ -108,7 +108,7 @@ async def get_drivers_championship():
             "surname": driver.get("surname"),
             "position": entry.get("position"),
             "points": entry.get("points"),
-	        "teamId": team.get("teamId"),
+	        "teamId": format_team_name(team.get("teamId")),
             "country": country,
             "flag": country_to_code(country)
         })
