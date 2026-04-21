@@ -35,6 +35,16 @@ def country_to_code(country_name: str) -> str:
         return pycountry.countries.lookup(country_name).alpha_2.lower()
     except Exception:
         return ""
+
+def format_team_name(team_id: str) -> str:
+    if not team_id:
+        return ""
+    special = {
+        "rb": "RB"
+    }
+    if team_id in special:
+        return special[team_id]
+    return team_id.replace("_", " ").title()
     
 def make_signature(results):
     return hashlib.md5(json.dumps(results, 
@@ -98,7 +108,7 @@ async def get_drivers_championship():
             "surname": driver.get("surname"),
             "position": entry.get("position"),
             "points": entry.get("points"),
-	        "teamId": team.get("teamId"),
+	        "teamId": format_team_name(team.get("teamId")),
             "country": country,
             "flag": country_to_code(country)
         })
