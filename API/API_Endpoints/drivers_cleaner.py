@@ -1,78 +1,15 @@
 from fastapi import APIRouter
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
-import pycountry
 import httpx
 from datetime import datetime, timedelta
-import pytz
-import os
-import hashlib
-import json
+
+from API_Endpoints.common.countries import country_to_code, normalize_country
+from API_Endpoints.common.formatting import format_team_name
+from API_Endpoints.common.races import get_next_race_end, NEXT_RACE_API_URL
+from API_Endpoints.common.signatures import make_signature
+from API_Endpoints.common.time import MT, UTC
 
 router = APIRouter()
-
-LAST_RACE_API_URL = "http://localhost:4463/f1/next_race/"
-
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-UTC = pytz.utc
-
-# Initialize caching
-@router.on_event("startup")
-async def startup():
-    FastAPICache.init(InMemoryBackend())
-
-# The API uses some weird country names that don't match standard
-def country_to_code(country_name: str) -> str:
-    replacements = {
-        "Great Britain": "GB",
-        "United States": "US",
-    }
-    try:
-        country_name = replacements.get(country_name, country_name)
-        return pycountry.countries.lookup(country_name).alpha_2.lower()
-    except Exception:
-        return ""
-
-def format_team_name(team_id: str) -> str:
-    if not team_id:
-        return ""
-    special = {
-        "rb": "RB"
-    }
-    if team_id in special:
-        return special[team_id]
-    return team_id.replace("_", " ").title()
-    
-def make_signature(results):
-    return hashlib.md5(json.dumps(results, 
-        sort_keys=True).encode()).hexdigest()
-
-async def get_next_race_end():
-    async with httpx.AsyncClient() as client:
-        try:
-	   # Use f1_latest API to fetch race time for smart caching
-            r = await client.get(LAST_RACE_API_URL)
-            data = r.json()
-            next_event = data.get("next_event", {})
-            race_dt_str = next_event.get("datetime")
-
-            if not race_dt_str:
-                return None
-            
-            race_dt = datetime.fromisoformat(race_dt_str)
-
-            if race_dt.tzinfo is None:
-                race_dt = UTC.localize(race_dt)
-
-            return race_dt.astimezone(MT)
-        
-        except Exception as e:
-            print("Error fetching race time:", e)
-            print("Used URL:", LAST_RACE_API_URL)
-    return None
 
 @router.get("/", summary="Fetch current drivers championship")
 async def get_drivers_championship():
@@ -90,20 +27,12 @@ async def get_drivers_championship():
 
         data = response.json()
 
-
-    country_correction_map = {
-        "New Zealander": "New Zealand",
-        "Italian": "Italy",
-        "Argentine": "Argentina"
-    }
     drivers = data.get("drivers_championship", [])
     results = []
     for entry in drivers:
         driver = entry.get("driver", {})
         team = entry.get("team", {})
-        country = driver.get("nationality", "")
-        if country in country_correction_map:
-            country = country_correction_map[country]
+        country = normalize_country(driver.get("nationality", ""))
         results.append({
             "surname": driver.get("surname"),
             "position": entry.get("position"),
@@ -133,7 +62,7 @@ async def get_drivers_championship():
 
             if old_signature and old_signature != new_signature:
                 async with httpx.AsyncClient() as client:
-                    r = await client.get(LAST_RACE_API_URL)
+                    r = await client.get(NEXT_RACE_API_URL)
                     data = r.json()
 
                     next_dt = data.get("next_event", {}).get("datetime")

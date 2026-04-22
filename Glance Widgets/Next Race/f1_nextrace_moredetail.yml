@@ -185,9 +185,9 @@
 
         <div style="margin-block: 1rem;">
           <img
-            src="http://${F1_API_URL}:4463/f1/next_map/"
+            src="http://${F1_API_PUBLIC_URL}:4463/f1/next_map/?race={{ $session.String "raceId" }}"
             onerror="this.style.display='none'"
-            style="max-width: 100%; height: auto; border-radius: 8px;"
+            style="display: block; width: 100%; max-width: 100%; height: auto; min-height: 80px; border-radius: 8px;"
           />
         </div>
 

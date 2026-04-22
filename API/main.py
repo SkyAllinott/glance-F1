@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
 
 from API_Endpoints.current_race_cleaner import router as current_race_cleaner
 from API_Endpoints.constructors_cleaner import router as constructors_cleaner
@@ -7,6 +9,12 @@ from API_Endpoints.map.router import router as map_router
 from API_Endpoints.last_race_cleaner import router as last_race_cleaner
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+async def startup():
+    FastAPICache.init(InMemoryBackend())
+
 
 # Include all routers
 app.include_router(current_race_cleaner, prefix="/f1/next_race")

@@ -88,12 +88,13 @@ def generate_track_map_svg(year: int, city: str = None, country: str = None, tra
                            preserveAspectRatio="xMidYMid meet")
 
     track_class = 'track-line'
+    stroke_width = max(min(viewbox_width, viewbox_height) * 0.012, 50)
     # Have to have a super thick line
     dwg.defs.add(dwg.style(f"""
         .{track_class} {{
             fill: transparent;
             stroke: {track_color};
-            stroke-width: 40;
+            stroke-width: {stroke_width};
             title: {track};
             filter: drop-shadow(0 0 40px white), drop-shadow(0 0 70px {track_color});
         }}"""))

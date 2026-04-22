@@ -87,17 +87,25 @@ The largest difference is localized time zones, track map, added track details, 
 # Project Structure
 ```
 glance-F1/
-├── API/
-│   ├── main.py                    # FastAPI application entry point
-│   ├── requirements.txt           # Python dependencies
-│   ├── Dockerfile                 # Container build instructions
-│   └── API_Endpoints/
-│       ├── constructors_cleaner.py
-│       ├── current_race_cleaner.py
-│       ├── drivers_cleaner.py
-│       └── map/
-│           ├── map_generator.py   # Track SVG generation
-│           └── router.py          # Map endpoint logic
-├── Glance Widgets/               # YAML files for Glance integration
-└── docker-compose.yaml          # Local development compose file
++-- API/
+|   +-- main.py                    # FastAPI application entry point
+|   +-- requirements.txt           # Python dependencies
+|   +-- Dockerfile                 # Container build instructions
+|   +-- API_Endpoints/
+|       +-- constructors_cleaner.py # Constructors championship endpoint
+|       +-- current_race_cleaner.py # Next race endpoint
+|       +-- drivers_cleaner.py      # Drivers championship endpoint
+|       +-- last_race_cleaner.py    # Last race results endpoint
+|       +-- common/                 # Shared endpoint helpers
+|       |   +-- countries.py        # Country normalization and flag codes
+|       |   +-- formatting.py       # Team and display formatting helpers
+|       |   +-- races.py            # Shared race lookup helpers
+|       |   +-- signatures.py       # Cache signature helpers
+|       |   +-- time.py             # Timezone and date conversion helpers
+|       +-- map/
+|           +-- map_generator.py    # Track SVG generation
+|           +-- router.py           # Map endpoint logic
++-- Glance Widgets/                # YAML files for Glance integration
++-- Demo Images/                   # README screenshots
++-- docker-compose.yaml            # Local development compose file
 ```

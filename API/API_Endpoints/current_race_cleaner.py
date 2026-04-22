@@ -1,40 +1,14 @@
 from fastapi import APIRouter
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
 import httpx
 from datetime import datetime, timedelta
-import pytz
 import os
 import fastf1
-import hashlib 
-import json
+
+from API_Endpoints.common.signatures import make_signature
+from API_Endpoints.common.time import convert_to_mt, MT, TZ, UTC
 
 router = APIRouter()
-
-# Timezone information
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-UTC = pytz.utc
-
-@router.on_event("startup")
-async def startup():
-    FastAPICache.init(InMemoryBackend())
-
-# Convert to timezone function
-def convert_to_mt(date_str, time_str):
-    if not date_str or not time_str:
-        return None
-    dt_utc = datetime.strptime(f"{date_str}T{time_str}", "%Y-%m-%dT%H:%M:%SZ")
-    dt_utc = UTC.localize(dt_utc)
-    return dt_utc.astimezone(MT)
-
-def make_signature(race):
-    relevant = {
-        "winner": race.get("winner")
-    }
-    return hashlib.md5(json.dumps(relevant, sort_keys=True).encode()).hexdigest()
 
 @router.get("/", summary="Fetch next race")
 async def get_next_race():
@@ -127,7 +101,7 @@ async def get_next_race():
     else:
         next_race["totalDistanceKm"] = None
 
-    new_signature = make_signature(next_race)
+    new_signature = make_signature({"winner": next_race.get("winner")})
 
     # Select next event
     def get_datetime(item):

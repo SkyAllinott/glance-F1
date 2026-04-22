@@ -1,52 +1,15 @@
 from fastapi import APIRouter, Response
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse
 import httpx
-import io
 from datetime import datetime, timedelta
-import pytz
-import os
-import hashlib
-import json
 
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+from API_Endpoints.common.races import NEXT_RACE_API_URL
+from API_Endpoints.common.signatures import make_signature
+from API_Endpoints.common.time import MT, UTC
 from .map_generator import generate_track_map_svg
 
 router = APIRouter()
-
-LAST_RACE_API_URL = "http://localhost:4463/f1/next_race/"
-
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-
-@router.on_event("startup")
-# Initialize caching
-async def startup():
-    FastAPICache.init(InMemoryBackend())
-
-async def get_next_race_end():
-    async with httpx.AsyncClient() as client:
-        try:
-	   # Use f1_latest API to fetch race time for smart caching
-            r = await client.get(LAST_RACE_API_URL)
-            data = r.json()
-            next_event = data.get("next_event", {})
-            race_dt_str = next_event.get("datetime")
-
-            if race_dt_str:
-                race_dt = datetime.fromisoformat(race_dt_str)
-                race_dt = race_dt.astimezone(MT)
-            return race_dt
-        except Exception as e:
-            print("Error fetching race time:", e)
-            print("Used URL:", LAST_RACE_API_URL)
-    return None
-
-def make_signature(data):
-    return hashlib.md5(json.dumps(data, 
-        sort_keys=True).encode()).hexdigest()
 
 @router.get("/", summary="Fetch next track map")
 async def get_dynamic_track_map():
@@ -59,7 +22,7 @@ async def get_dynamic_track_map():
 
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.get(LAST_RACE_API_URL)
+            resp = await client.get(NEXT_RACE_API_URL, timeout=60.0)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
@@ -74,8 +37,14 @@ async def get_dynamic_track_map():
     race = data.get("race", [{}])[0]
     year = int(data.get("season", 2024)) - 1
     circuit = race.get("circuit")
+    if not circuit:
+        return PlainTextResponse("Missing circuit info", status_code=500)
+
     country = circuit.get("country")
     city = circuit.get("city")
+    if not city or not country:
+        return PlainTextResponse("Missing circuit location", status_code=500)
+
     gp = city + " " + country
     race_name = race.get("raceName")
     race_dt_str = race.get("schedule", {}).get("race", {}).get("datetime_rfc3339")
@@ -85,7 +54,7 @@ async def get_dynamic_track_map():
     race_dt = datetime.fromisoformat(race_dt_str).astimezone(MT)
     now = datetime.now(MT)
     
-    if cached:
+    if cached and old_signature == upstream_signature:
         return Response(content=cached["svg"], media_type="image/svg+xml")
 
     if not gp or not race_dt_str:
@@ -96,11 +65,13 @@ async def get_dynamic_track_map():
     except Exception as e:
         try:
             svg_content = generate_track_map_svg(year = year, race_name = race_name, track = circuit.get("circuitName"), session_type = "Q")
-        except:
-            raise ValueError("Could not print map. Likely catching FastF1 pulling wrong track.")
-    svg_bytes = svg_content.encode("utf-8")
+        except Exception as fallback_error:
+            return PlainTextResponse(
+                f"Could not generate map: {repr(fallback_error)}",
+                status_code=500,
+            )
 
-    if now > race_dt:
+    if race_dt > now:
         expire = int((race_dt - now).total_seconds())
         expiry_dt = race_dt
     elif now < race_dt + timedelta(hours = 1):
@@ -118,7 +89,7 @@ async def get_dynamic_track_map():
                 next_race_dt = datetime.fromisoformat(next_dt)
 
                 if next_race_dt.tzinfo is None:
-                    next_race_dt = pytz.utc.localize(next_race_dt)
+                    next_race_dt = UTC.localize(next_race_dt)
 
                 next_race_dt = next_race_dt.astimezone(MT)
 

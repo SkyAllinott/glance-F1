@@ -8,30 +8,21 @@
       <ul class="list collapsible-container" data-collapse-after="5">
         {{ range $i, $v := .JSON.Array "results" }}
         <li class="flex items-center {{ if eq $i 0 }}color-primary{{ else if eq $i 1 }}color-highlight{{ end }}">
-          <div class="grow min-width-0">
-          <span>{{ .String "position" }}. {{ .String "surname" }} <img src="https://flagcdn.com/w20/{{ .String "flag" }}.png"
-            alt=""
-            style="width: 20px; height: 14px; object-fit: cover; vertical-align: middle"
-            class="inline-block rounded-sm" /> 
-          </span>
-          {{ $id := .String "teamId" }}
-            <span class="size-h6">
-              ( {{- if eq $id "red_bull" -}}Red Bull
-              {{- else if eq $id "aston_martin" -}}Aston Martin
-              {{- else if eq $id "mercedes" -}}Mercedes
-              {{- else if eq $id "ferrari" -}}Ferrari
-              {{- else if eq $id "mclaren" -}}McLaren
-              {{- else if eq $id "williams" -}}Williams
-              {{- else if eq $id "alpine" -}}Alpine
-              {{- else if eq $id "haas" -}}Haas
-              {{- else if eq $id "rb" -}}RB
-              {{- else if eq $id "sauber" -}}Sauber
-              {{- else if eq $id "audi" -}}Audi
-              {{- else if eq $id "cadillac" -}}Cadillac
-              {{- else -}}{{ $id }}{{- end -}})
-            </span>
-        </div>
-          <span class="shrink-0 text-right">{{ .String "time" }}</span>
+          <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(5.5rem, auto); align-items: baseline; column-gap: 0.6rem; width: 100%;">
+            <div class="min-width-0" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+              {{ .String "position" }}. {{ .String "surname" }}
+              <img src="https://flagcdn.com/w20/{{ .String "flag" }}.png"
+                alt=""
+                style="width: 20px; height: 14px; object-fit: cover; vertical-align: middle"
+                class="inline-block rounded-sm" />
+            </div>
+
+            <div class="size-h6" style="white-space: nowrap;">
+              {{ if .String "teamId" }}({{ .String "teamId" }}){{ end }}
+            </div>
+
+            <span class="text-right" style="white-space: nowrap;">{{ .String "time" }}</span>
+          </div>
         </li>
         {{ end }}
       </ul>

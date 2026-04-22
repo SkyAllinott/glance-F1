@@ -1,10 +1,8 @@
-version: "3.9"
-
 # For dev purposes only. This builds the local copy.
 # Advise to use the docker image provided in instructions. 
 services:
   f1_api:
-    container_name: f1_api
+    container_name: f1_api_dev
     environment:
       - TIMEZONE=America/Edmonton
       - TRACK_COLOUR=#e5d486
