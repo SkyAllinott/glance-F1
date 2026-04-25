@@ -1,34 +1,15 @@
 from fastapi import APIRouter
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.inmemory import InMemoryBackend
+from API_Endpoints.functions import TZ, MT, UTC, convert_to_mt, get_datetime, default_expire
 import httpx
 from datetime import datetime, timedelta
-import pytz
-import os
 import fastf1
 import hashlib 
 import json
+import os
 
 router = APIRouter()
-
-# Timezone information
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-UTC = pytz.utc
-
-@router.on_event("startup")
-async def startup():
-    FastAPICache.init(InMemoryBackend())
-
-# Convert to timezone function
-def convert_to_mt(date_str, time_str):
-    if not date_str or not time_str:
-        return None
-    dt_utc = datetime.strptime(f"{date_str}T{time_str}", "%Y-%m-%dT%H:%M:%SZ")
-    dt_utc = UTC.localize(dt_utc)
-    return dt_utc.astimezone(MT)
 
 def make_signature(race):
     relevant = {
@@ -94,6 +75,7 @@ async def get_next_race():
     year = calendar_data.get("season")
     calendar_round = next_race.get("round")
 
+    # Handle issues in 2026 calendar due to race cancellations
     if year == 2026 and calendar_round >= 6:
         calendar_round = calendar_round - 2
 
@@ -128,14 +110,6 @@ async def get_next_race():
         next_race["totalDistanceKm"] = None
 
     new_signature = make_signature(next_race)
-
-    # Select next event
-    def get_datetime(item):
-        dt_str = item[1].get("datetime_rfc3339")
-        try:
-            return datetime.fromisoformat(dt_str) if dt_str else datetime.max.replace(tzinfo=MT)
-        except Exception:
-            return datetime.max.replace(tzinfo=MT)
 
     sorted_schedule = sorted(schedule.items(), key=get_datetime)
 
@@ -206,10 +180,10 @@ async def get_next_race():
                 expire = max(1, int((next_event_dt - now).total_seconds()))
                 expiry_dt = next_event_dt
             else:
-                expire = 3600
+                expire = default_expire
                 expiry_dt = now + timedelta(seconds=expire)
         except Exception:
-            expire = 3600
+            expire = default_expire
             expiry_dt = now + timedelta(seconds=expire)
 
     elif race_dt:
@@ -219,7 +193,7 @@ async def get_next_race():
             expire = int((expiry_dt - now).total_seconds())
         else:
             # 1 hour after race, poll every hour
-            expire = 3600
+            expire = default_expire
             expiry_dt = now + timedelta(seconds=expire)
 
             if old_signature and old_signature != new_signature:
@@ -253,7 +227,7 @@ async def get_next_race():
                     expire = 86400
                     expiry_dt = now + timedelta(seconds=expire)
     else:
-        expire = 3600
+        expire = default_expire
         expiry_dt = now + timedelta(seconds=expire)
 
 
