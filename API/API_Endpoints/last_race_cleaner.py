@@ -8,7 +8,10 @@ from datetime import datetime, timedelta
 import pytz
 import os
 import fastf1
-from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map
+
+from .helpers.functions import country_to_code
+from .helpers.global_vars import country_correction_map
+from .helpers.time_functions import MT
 
 router = APIRouter()
 
