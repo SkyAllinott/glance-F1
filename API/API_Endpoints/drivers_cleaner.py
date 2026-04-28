@@ -1,14 +1,13 @@
 from fastapi import APIRouter
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
-import pycountry
 import httpx
 from datetime import datetime, timedelta
-import pytz
-import os
 import hashlib
 import json
-from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map, default_expire, format_team_name
+
+from .helpers.functions import country_to_code, get_next_race_end, format_team_name
+from .helpers.global_vars import NEXT_RACE_API_URL, country_correction_map, default_expire
+from .helpers.time_functions import MT, UTC
 
 router = APIRouter()
 

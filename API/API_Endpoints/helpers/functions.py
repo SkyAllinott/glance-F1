@@ -1,28 +1,8 @@
-import pytz
-import os
-from datetime import datetime, timedelta
 import pycountry
 import httpx
-
-# Global Variables
-NEXT_RACE_API_URL = "http://localhost:4463/f1/next_race/"
-
-# Where API outputs don't match nice values
-country_correction_map = {
-        "New Zealander": "New Zealand",
-        "Italian": "Italy",
-        "Argentine": "Argentina"
-    }
-
-# For caching, the default polling time is 1 hour
-default_expire = 3600
-
-# Timezone information
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-UTC = pytz.utc
+from .global_vars import NEXT_RACE_API_URL
+from .time_functions import MT, UTC
+from datetime import datetime 
 
 # Format team name for nice display
 def format_team_name(team_id: str) -> str:
@@ -34,22 +14,6 @@ def format_team_name(team_id: str) -> str:
     if team_id in exceptions:
         return exceptions[team_id]
     return team_id.replace("_", " ").title()
-
-# Convert to timezone function
-def convert_to_mt(date_str, time_str):
-    if not date_str or not time_str:
-        return None
-    dt_utc = datetime.strptime(f"{date_str}T{time_str}", "%Y-%m-%dT%H:%M:%SZ")
-    dt_utc = UTC.localize(dt_utc)
-    return dt_utc.astimezone(MT)
-
-# Use to sort season schedule to find next event
-def get_datetime(item):
-    dt_str = item[1].get("datetime_rfc3339")
-    try:
-        return datetime.fromisoformat(dt_str) if dt_str else datetime.max.replace(tzinfo=MT)
-    except Exception:
-        return datetime.max.replace(tzinfo=MT)
     
 # The API uses some weird country names that don't match standard
 def country_to_code(country_name: str) -> str:

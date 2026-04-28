@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response
-from fastapi.responses import PlainTextResponse, StreamingResponse
+from fastapi.responses import PlainTextResponse
 import httpx
 import io
 from datetime import datetime, timedelta
@@ -7,42 +7,13 @@ import pytz
 import os
 import hashlib
 import json
-
 from fastapi_cache import FastAPICache
-from fastapi_cache.backends.inmemory import InMemoryBackend
+
 from .map_generator import generate_track_map_svg
+from ..helpers.global_vars import NEXT_RACE_API_URL
+from ..helpers.time_functions import MT
 
 router = APIRouter()
-
-LAST_RACE_API_URL = "http://localhost:4463/f1/next_race/"
-
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-
-@router.on_event("startup")
-# Initialize caching
-async def startup():
-    FastAPICache.init(InMemoryBackend())
-
-async def get_next_race_end():
-    async with httpx.AsyncClient() as client:
-        try:
-	   # Use f1_latest API to fetch race time for smart caching
-            r = await client.get(LAST_RACE_API_URL)
-            data = r.json()
-            next_event = data.get("next_event", {})
-            race_dt_str = next_event.get("datetime")
-
-            if race_dt_str:
-                race_dt = datetime.fromisoformat(race_dt_str)
-                race_dt = race_dt.astimezone(MT)
-            return race_dt
-        except Exception as e:
-            print("Error fetching race time:", e)
-            print("Used URL:", LAST_RACE_API_URL)
-    return None
 
 def make_signature(data):
     return hashlib.md5(json.dumps(data, 
@@ -59,7 +30,7 @@ async def get_dynamic_track_map():
 
     async with httpx.AsyncClient() as client:
         try:
-            resp = await client.get(LAST_RACE_API_URL)
+            resp = await client.get(NEXT_RACE_API_URL)
             resp.raise_for_status()
             data = resp.json()
         except Exception as e:
