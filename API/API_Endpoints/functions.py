@@ -24,6 +24,17 @@ if TZ not in pytz.all_timezones:
 MT = pytz.timezone(TZ)
 UTC = pytz.utc
 
+# Format team name for nice display
+def format_team_name(team_id: str) -> str:
+    if not team_id:
+        return ""
+    exceptions = {
+        "rb": "RB"
+    }
+    if team_id in exceptions:
+        return exceptions[team_id]
+    return team_id.replace("_", " ").title()
+
 # Convert to timezone function
 def convert_to_mt(date_str, time_str):
     if not date_str or not time_str:

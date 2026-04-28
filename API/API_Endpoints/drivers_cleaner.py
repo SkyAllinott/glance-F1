@@ -8,7 +8,7 @@ import pytz
 import os
 import hashlib
 import json
-from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map, default_expire
+from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map, default_expire, format_team_name
 
 router = APIRouter()
 
