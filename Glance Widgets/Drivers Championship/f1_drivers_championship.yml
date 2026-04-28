@@ -7,26 +7,17 @@
       {{ range $i, $v := .JSON.Array "drivers" }}
       <li class="flex items-center {{ if eq $i 0 }}color-primary{{ else if eq $i 1 }}color-highlight{{ end }}">
         <div class="grow min-width-0">
-          <span>{{ .String "position" }}. {{ .String "surname" }} <img src="https://flagcdn.com/w20/{{ .String "flag" }}.png"
+          <span>
+            {{ .String "position" }}. {{ .String "surname" }}
+            <img src="https://flagcdn.com/w20/{{ .String "flag" }}.png"
                  alt=""
                  style="width: 20px; height: 14px; object-fit: cover; vertical-align: middle"
-                 class="inline-block rounded-sm" /> </span>
-          {{ $id := .String "teamId" }}
-            <span class="size-h6">
-              ( {{- if eq $id "red_bull" -}}Red Bull
-              {{- else if eq $id "aston_martin" -}}Aston Martin
-              {{- else if eq $id "mercedes" -}}Mercedes
-              {{- else if eq $id "ferrari" -}}Ferrari
-              {{- else if eq $id "mclaren" -}}McLaren
-              {{- else if eq $id "williams" -}}Williams
-              {{- else if eq $id "alpine" -}}Alpine
-              {{- else if eq $id "haas" -}}Haas
-              {{- else if eq $id "rb" -}}RB
-              {{- else if eq $id "sauber" -}}Sauber
-              {{- else if eq $id "audi" -}}Audi
-              {{- else if eq $id "cadillac" -}}Cadillac
-              {{- else -}}{{ $id }}{{- end -}})
-            </span>
+                 class="inline-block rounded-sm" />
+          </span>
+
+          {{ if .String "teamId" }}
+            <span class="size-h6">({{ .String "teamId" }})</span>
+          {{ end }}
         </div>
         <span class="shrink-0 text-right">{{ .String "points" }}</span>
       </li>
