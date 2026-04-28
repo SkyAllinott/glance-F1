@@ -4,20 +4,25 @@ from datetime import datetime, timedelta
 import pycountry
 import httpx
 
-# Timezone information
-TZ = os.environ.get("TIMEZONE").strip()
-if TZ not in pytz.all_timezones:
-    raise ValueError('Invalid time zone selection')
-MT = pytz.timezone(TZ)
-UTC = pytz.utc
+# Global Variables
+NEXT_RACE_API_URL = "http://localhost:4463/f1/next_race/"
 
+# Where API outputs don't match nice values
 country_correction_map = {
         "New Zealander": "New Zealand",
         "Italian": "Italy",
         "Argentine": "Argentina"
     }
 
+# For caching, the default polling time is 1 hour
 default_expire = 3600
+
+# Timezone information
+TZ = os.environ.get("TIMEZONE").strip()
+if TZ not in pytz.all_timezones:
+    raise ValueError('Invalid time zone selection')
+MT = pytz.timezone(TZ)
+UTC = pytz.utc
 
 # Convert to timezone function
 def convert_to_mt(date_str, time_str):
@@ -27,7 +32,7 @@ def convert_to_mt(date_str, time_str):
     dt_utc = UTC.localize(dt_utc)
     return dt_utc.astimezone(MT)
 
-
+# Use to sort season schedule to find next event
 def get_datetime(item):
     dt_str = item[1].get("datetime_rfc3339")
     try:
@@ -47,7 +52,7 @@ def country_to_code(country_name: str) -> str:
     except Exception:
         return ""
 
-NEXT_RACE_API_URL = "http://localhost:4463/f1/next_race/"
+# Fetch race end results from NEXT_RACE_API_URL and use it for caching and event timing information
 async def get_next_race_end():
     async with httpx.AsyncClient() as client:
         try:

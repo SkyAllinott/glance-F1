@@ -11,7 +11,7 @@ import json
 from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map, default_expire
 
 router = APIRouter()
-    
+
 def make_signature(results):
     return hashlib.md5(json.dumps(results, 
         sort_keys=True).encode()).hexdigest()
@@ -26,7 +26,7 @@ async def get_drivers_championship():
         return cached
 
     async with httpx.AsyncClient() as client:
-        response = await client.get("https://f1api.dev/api/current/drivers-championship")
+        response = await client.get("https://f1api.dev/api/current/drivers-championship", timeout=60)
         if response.status_code != 200:
             return {"error": "Failed to fetch data"}
 

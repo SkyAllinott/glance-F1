@@ -8,37 +8,13 @@ import pytz
 import os
 import hashlib
 import json
-from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL, country_correction_map
+from API_Endpoints.functions import TZ, MT, UTC, country_to_code, get_next_race_end, NEXT_RACE_API_URL
 
 router = APIRouter()
     
 def make_signature(results):
     return hashlib.md5(json.dumps(results, 
         sort_keys=True).encode()).hexdigest()
-
-async def get_next_race_end():
-    async with httpx.AsyncClient() as client:
-        try:
-	   # Use f1_latest API to fetch race time for smart caching
-            r = await client.get(NEXT_RACE_API_URL)
-            data = r.json()
-            next_event = data.get("next_event", {})
-            race_dt_str = next_event.get("datetime")
-
-            if not race_dt_str:
-                return None
-            
-            race_dt = datetime.fromisoformat(race_dt_str)
-
-            if race_dt.tzinfo is None:
-                race_dt = UTC.localize(race_dt)
-
-            return race_dt.astimezone(MT)
-        
-        except Exception as e:
-            print("Error fetching race time:", e)
-            print("Used URL:", NEXT_RACE_API_URL)
-    return None
 
 @router.get("/", summary="Fetch current constructors championship")
 async def get_constructors_championship():
@@ -50,7 +26,7 @@ async def get_constructors_championship():
         return cached
 
     async with httpx.AsyncClient() as client:
-        response = await client.get("https://f1api.dev/api/current/constructors-championship")
+        response = await client.get("https://f1api.dev/api/current/constructors-championship", timeout=60)
         if response.status_code != 200:
             return {"error": "Failed to fetch data"}
 
