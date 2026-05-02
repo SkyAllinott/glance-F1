@@ -59,29 +59,34 @@ async def get_drivers_championship():
         if race_dt > now:
             expire = int((race_dt - now).total_seconds())
             expiry_dt = race_dt
-        elif now < race_dt + timedelta(seconds=default_expire):
-            expiry_dt = race_dt + timedelta(seconds=default_expire)
+        elif now < race_dt + timedelta(hours = 1):
+            expiry_dt = race_dt + timedelta(hours=1)
             expire = int((expiry_dt - now).total_seconds())
         else:
-            expire = default_expire
-            expiry_dt = now + timedelta(seconds=expire)
+            expire = 3600
+            expiry_dt = now + timedelta(seconds=3600)
 
-            if old_signature and old_signature != new_signature:
-                async with httpx.AsyncClient() as client:
-                    r = await client.get(NEXT_RACE_API_URL)
-                    data = r.json()
+            async with httpx.AsyncClient() as client:
+                results_response = await client.get("https://f1api.dev/api/current/constructors-championship", timeout=60)
+                next_response = await client.get(NEXT_RACE_API_URL)
 
-                    next_dt = data.get("next_event", {}).get("datetime")
+            fresh_results = results_response.json()
+            data = next_response.json()
+            
+            new_signature = make_signature(fresh_results)
 
-                    if next_dt:
-                        next_race_dt = datetime.fromisoformat(next_dt)
+            if old_signature != new_signature:
+                new_next_dt = data.get("next_event", {}).get("datetime")
 
-                        if next_race_dt.tzinfo is None:
-                            next_race_dt = UTC.localize(next_race_dt)
-                        next_race_dt = next_race_dt.astimezone(MT)
+                if new_next_dt:
+                    next_race_dt = datetime.fromisoformat(new_next_dt)
 
-                        expire = int((next_race_dt - now).total_seconds())
-                        expiry_dt = next_race_dt
+                    if next_race_dt.tzinfo is None:
+                        next_race_dt = UTC.localize(next_race_dt)
+                    next_race_dt = next_race_dt.astimezone(MT)
+
+                    expire = int((next_race_dt - now).total_seconds())
+                    expiry_dt = next_race_dt
 
 
     response_data = {
