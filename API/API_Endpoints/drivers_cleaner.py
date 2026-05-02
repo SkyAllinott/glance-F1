@@ -67,7 +67,7 @@ async def get_drivers_championship():
             expiry_dt = now + timedelta(seconds=3600)
 
             async with httpx.AsyncClient() as client:
-                results_response = await client.get("https://f1api.dev/api/current/constructors-championship", timeout=60)
+                results_response = await client.get("https://f1api.dev/api/current/drivers-championship", timeout=60)
                 next_response = await client.get(NEXT_RACE_API_URL)
 
             fresh_results = results_response.json()
