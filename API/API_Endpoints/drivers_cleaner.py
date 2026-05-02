@@ -59,12 +59,12 @@ async def get_drivers_championship():
         if race_dt > now:
             expire = int((race_dt - now).total_seconds())
             expiry_dt = race_dt
-        elif now < race_dt + timedelta(hours = 1):
-            expiry_dt = race_dt + timedelta(hours=1)
+        elif now < race_dt + timedelta(seconds=default_expire):
+            expiry_dt = race_dt + timedelta(seconds=default_expire)
             expire = int((expiry_dt - now).total_seconds())
         else:
-            expire = 3600
-            expiry_dt = now + timedelta(seconds=3600)
+            expire = default_expire
+            expiry_dt = now + timedelta(seconds=default_expire)
 
             async with httpx.AsyncClient() as client:
                 results_response = await client.get("https://f1api.dev/api/current/drivers-championship", timeout=60)

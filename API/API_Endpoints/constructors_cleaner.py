@@ -6,7 +6,7 @@ import hashlib
 import json
 
 from .helpers.functions import country_to_code, get_next_race_end, format_team_name
-from .helpers.global_vars import NEXT_RACE_API_URL
+from .helpers.global_vars import NEXT_RACE_API_URL, default_expire
 from .helpers.time_functions import MT, UTC
 
 router = APIRouter()
@@ -62,11 +62,11 @@ async def get_constructors_championship():
         if race_dt > now:
             expire = int((race_dt - now).total_seconds())
             expiry_dt = race_dt
-        elif now < race_dt + timedelta(hours = 1):
-            expiry_dt = race_dt + timedelta(hours=1)
+        elif now < race_dt + timedelta(seconds=default_expire):
+            expiry_dt = race_dt + timedelta(seconds=default_expire)
             expire = int((expiry_dt - now).total_seconds())
         else:
-            expire = 3600
+            expire = default_expire
             expiry_dt = now + timedelta(seconds=3600)
 
             async with httpx.AsyncClient() as client:
