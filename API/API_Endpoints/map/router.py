@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Response
 from fastapi.responses import PlainTextResponse
+import fastf1
 import httpx
 import io
 from datetime import datetime, timedelta
@@ -9,7 +10,7 @@ import hashlib
 import json
 from fastapi_cache import FastAPICache
 
-from .map_generator import generate_track_map_svg
+from .map_generator import generate_track_map_svg, remove_accents
 from ..helpers.global_vars import NEXT_RACE_API_URL
 from ..helpers.time_functions import MT
 
@@ -18,6 +19,74 @@ router = APIRouter()
 def make_signature(data):
     return hashlib.md5(json.dumps(data, 
         sort_keys=True).encode()).hexdigest()
+
+def generate_historical_track_map(data):
+    race = data.get("race", [{}])[0]
+    circuit = race.get("circuit") or {}
+    country = circuit.get("country")
+    city = circuit.get("city")
+    track = circuit.get("circuitName")
+    race_name = race.get("raceName")
+    current_year = int(data.get("season", datetime.now().year))
+
+    errors = []
+    for year in range(current_year - 1, 2017, -1):
+        attempts = []
+
+        try:
+            schedule = fastf1.get_event_schedule(year)
+            matching_events = [
+                event for _, event in schedule.iterrows()
+                if historical_event_matches(event, city, country, race_name)
+            ]
+        except Exception as e:
+            errors.append(f"{year} schedule: {type(e).__name__}: {e}")
+            matching_events = []
+
+        for event in matching_events:
+            attempts.append({
+                "year": year,
+                "race_name": event.get("EventName"),
+                "track": track,
+                "session_type": "Q",
+            })
+
+        if city and country and not attempts:
+            attempts.append({
+                "year": year,
+                "city": city,
+                "country": country,
+                "track": track,
+                "session_type": "Q",
+            })
+        if race_name and not attempts:
+            attempts.append({
+                "year": year,
+                "race_name": race_name,
+                "track": track,
+                "session_type": "Q",
+            })
+
+        for kwargs in attempts:
+            try:
+                return generate_track_map_svg(**kwargs)
+            except Exception as e:
+                errors.append(f"{year}: {type(e).__name__}: {e}")
+
+    raise ValueError("Could not fetch a historical track map. " + " | ".join(errors[-6:]))
+
+def normalize_name(value):
+    return remove_accents(str(value or "")).casefold().strip()
+
+def historical_event_matches(event, city, country, race_name):
+    location_matches = city and normalize_name(event.get("Location")) == normalize_name(city)
+    country_matches = country and normalize_name(event.get("Country")) == normalize_name(country)
+    event_name_matches = (
+        race_name
+        and normalize_name(event.get("EventName")) == normalize_name(race_name)
+    )
+
+    return (location_matches and country_matches) or event_name_matches
 
 @router.get("/", summary="Fetch next track map")
 async def get_dynamic_track_map():
@@ -43,12 +112,6 @@ async def get_dynamic_track_map():
 
 
     race = data.get("race", [{}])[0]
-    year = int(data.get("season", 2024)) - 1
-    circuit = race.get("circuit")
-    country = circuit.get("country")
-    city = circuit.get("city")
-    gp = city + " " + country
-    race_name = race.get("raceName")
     race_dt_str = race.get("schedule", {}).get("race", {}).get("datetime_rfc3339")
 
     if not race_dt_str:
@@ -56,20 +119,16 @@ async def get_dynamic_track_map():
     race_dt = datetime.fromisoformat(race_dt_str).astimezone(MT)
     now = datetime.now(MT)
     
-    if cached:
+    if cached and old_signature == upstream_signature:
         return Response(content=cached["svg"], media_type="image/svg+xml")
 
-    if not gp or not race_dt_str:
-        raise ValueError("Missing circuitId or race time in API response")
+    if not race_dt_str:
+        raise ValueError("Missing race time in API response")
 
     try:
-        svg_content = generate_track_map_svg(year, city, country, circuit.get("circuitName"), "Q")
+        svg_content = generate_historical_track_map(data)
     except Exception as e:
-        try:
-            svg_content = generate_track_map_svg(year = year, race_name = race_name, track = circuit.get("circuitName"), session_type = "Q")
-        except:
-            raise ValueError("Could not print map. Likely catching FastF1 pulling wrong track.")
-    svg_bytes = svg_content.encode("utf-8")
+        return PlainTextResponse(str(e), status_code=500)
 
     if now > race_dt:
         expire = int((race_dt - now).total_seconds())
