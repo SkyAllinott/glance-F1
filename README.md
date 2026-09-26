@@ -4,7 +4,7 @@
   
 # The F1 Season... At A Glance
 
-![README](https://img.shields.io/badge/Actively%20Maintained-Green)
+![README](https://img.shields.io/badge/Not%20Actively%20Maintained-yellow)
 ![README](https://img.shields.io/github/v/release/skyallinott/glance-f1)
 ![README](https://img.shields.io/docker/pulls/skyallinott/f1_api)
 ![README](https://img.shields.io/github/issues/skyallinott/glance-f1)
