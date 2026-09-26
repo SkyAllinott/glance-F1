@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Response
+import asyncio
+from concurrent.futures import ProcessPoolExecutor
 from fastapi.responses import PlainTextResponse
 import fastf1
 import httpx
@@ -75,6 +77,14 @@ def generate_historical_track_map(data):
 
     raise ValueError("Could not fetch a historical track map. " + " | ".join(errors[-6:]))
 
+async def render_track_map(data):
+    # FastF1 loads every driver's telemetry for the session. Render in a
+    # short-lived process so that memory goes back to the OS afterwards and
+    # the event loop keeps serving other endpoints meanwhile.
+    with ProcessPoolExecutor(max_workers=1) as pool:
+        return await asyncio.get_running_loop().run_in_executor(
+            pool, generate_historical_track_map, data)
+
 def normalize_name(value):
     return remove_accents(str(value or "")).casefold().strip()
 
@@ -126,7 +136,7 @@ async def get_dynamic_track_map():
         raise ValueError("Missing race time in API response")
 
     try:
-        svg_content = generate_historical_track_map(data)
+        svg_content = await render_track_map(data)
     except Exception as e:
         return PlainTextResponse(str(e), status_code=500)
 
