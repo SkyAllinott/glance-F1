@@ -1,5 +1,8 @@
 import fastf1
+from fastf1 import _api as f1_api
+from fastf1.mvapi.api import get_circuit
 import numpy as np
+import pandas as pd
 import svgwrite
 from svgwrite.base import Title
 import io
@@ -10,6 +13,51 @@ import unicodedata
 def remove_accents(input_str):
     nfkd_form = unicodedata.normalize('NFKD', input_str)
     return u"".join([c for c in nfkd_form if not unicodedata.combining(c)])
+
+def load_track_outline(session):
+    """Return (x, y, rotation) for the circuit without a full session load.
+
+    Session.load(telemetry=True) parses car and position data for every
+    driver just to draw one lap, peaking at several hundred MiB. MultiViewer
+    (FastF1's own circuit info source) already ships a track outline, so use
+    that; otherwise stream the position feed keeping only the fastest lap.
+    """
+    circuit_info = f1_api.session_info(session.api_path)['Meeting']['Circuit']
+    circuit_key = circuit_info['Key']
+    # FastF1 applies the same correction in Session.get_circuit_info().
+    if circuit_key == 149 and circuit_info['ShortName'] == 'Mugello':
+        circuit_key = 146
+
+    circuit = get_circuit(year=session.event.year, circuit_key=circuit_key) or {}
+    if circuit.get('x') and circuit.get('y'):
+        x, y = np.asarray(circuit['x'], float), np.asarray(circuit['y'], float)
+        return np.append(x, x[0]), np.append(y, y[0]), float(circuit.get('rotation', 0.0))
+
+    return (*fastest_lap_positions(session), float(circuit.get('rotation', 0.0)))
+
+
+def fastest_lap_positions(session):
+    """Decode only the fastest lap's samples from the raw position stream."""
+    session.load(laps=True, telemetry=False, weather=False, messages=False)
+    lap = session.laps.pick_fastest()
+    driver = str(lap['DriverNumber'])
+    start, end = lap['LapStartTime'], lap['Time']
+
+    x, y = [], []
+    for record in f1_api.fetch_page(session.api_path, 'position') or []:
+        # Stream timestamps are session-relative, like LapStartTime.
+        if not start <= pd.to_timedelta(record[:12]) <= end:
+            continue
+        for sample in f1_api.parse(record[12:], zipped=True)['Position']:
+            entry = sample['Entries'].get(driver)
+            if entry and entry.get('Status') == 'OnTrack':
+                x.append(entry['X'])
+                y.append(entry['Y'])
+
+    if len(x) < 2:
+        raise ValueError("No position data for the fastest lap")
+    return np.append(x, x[0]), np.append(y, y[0])
+
 
 def generate_track_map_svg(year: int, city: str = None, country: str = None, track: str = None, session_type: str = "Q", race_name: str = None) -> str:
     track_color = os.environ['TRACK_COLOUR'].strip()
@@ -37,18 +85,12 @@ def generate_track_map_svg(year: int, city: str = None, country: str = None, tra
         if (city != remove_accents(session.event.Location)) or (country != remove_accents(session.event.Country)):
             raise ValueError("Map not matching correctly")
 
-    # I hate this API, please let me load just one drivers telemetry not everything...
-    # SO SO SO SO SO SLOW
-    session.load(weather=False, messages=False, telemetry=True)
-    lap = session.laps.pick_fastest()
-    telemetry = lap.get_telemetry().dropna(subset=["X", "Y"])
-    telemetry.loc[len(telemetry)] = telemetry.iloc[0]
-
+    x, y, rotation = load_track_outline(session)
     # api position data defaults to top is 'north.' This isn't how most maps "look" though,
     # so they also include a rotation parameter to match standard images
-    angle = (session.get_circuit_info().rotation / 180) * np.pi
+    angle = (rotation / 180) * np.pi
     rot_mat = np.array([[np.cos(angle), np.sin(angle)], [-np.sin(angle), np.cos(angle)]])
-    rotated = np.dot(telemetry[['X', 'Y']], rot_mat)
+    rotated = np.dot(np.column_stack([x, y]), rot_mat)
 
     x = rotated[:, 0]
     # Apply a vertical flip since it seems the angle is usually a vertical flip off.
